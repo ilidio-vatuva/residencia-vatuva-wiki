@@ -47,7 +47,7 @@ router.get('/auth/sso', async (req, res) => {
       .first()
 
     if (!wikiUser) {
-      const defaultGroup = await WIKI.models.groups.query().where('name', 'Users').first()
+      const defaultGroup = await WIKI.models.groups.query().where('name', process.env.WIKI_DEFAULT_GROUP || 'Users').first()
       wikiUser = await WIKI.models.users.query().insertAndFetch({
         email: `${payload.userId}@backend.internal`,
         name: `Backend User ${payload.userId.slice(0, 8)}`,
@@ -324,7 +324,7 @@ async function getOrCreateApiUser (apiUser) {
     .first()
 
   if (!wikiUser) {
-    const defaultGroup = await WIKI.models.groups.query().where('name', 'Users').first()
+    const defaultGroup = await WIKI.models.groups.query().where('name', process.env.WIKI_DEFAULT_GROUP || 'Users').first()
     wikiUser = await WIKI.models.users.query().insertAndFetch({
       email: `${apiUser.userId}@backend.internal`,
       name: `Backend User ${apiUser.userId.slice(0, 8)}`,
