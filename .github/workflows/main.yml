@@ -1,1 +1,47 @@
+name: Deploy Wiki.js
 
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: deploy
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+
+            APP_DIR=~/apps/residencia-vatuva-wiki
+
+            cd "$APP_DIR"
+
+            # Pull latest changes
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Install dependencies if package-lock changed
+            cd wiki
+            npm ci --legacy-peer-deps --production
+
+            # Run database migrations
+            node -e "
+              const config = require('js-yaml').load(require('fs').readFileSync('./config.yml','utf8'));
+              const knex = require('knex')({ client: 'pg', connection: { host: config.db.host, port: config.db.port, user: config.db.user, password: config.db.pass, database: config.db.db } });
+              knex.migrate.latest({ directory: './server/db/migrations' })
+                .then(r => { console.log('Migrations done:', r); return knex.destroy(); })
+                .catch(e => { console.error(e); process.exit(1); });
+            "
+
+            cd "$APP_DIR"
+
+            # Restart with PM2
+            pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
+            pm2 save
+
+            echo "Deploy complete"

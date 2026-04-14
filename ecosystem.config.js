@@ -1,9 +1,8 @@
 module.exports = {
   apps: [{
-    name: 'wiki',
+    name: 'nexo-wiki',
     cwd: './wiki',
     script: 'server/index.js',
-    env_file: '.env',
     watch: false,
     autorestart: true,
     max_restarts: 5,
