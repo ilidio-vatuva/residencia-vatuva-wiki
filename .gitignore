@@ -1,0 +1,4 @@
+.env
+wiki/node_modules/
+wiki/config.yml
+wiki/data/

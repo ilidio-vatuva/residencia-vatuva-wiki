@@ -1,0 +1,370 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Wiki.js Custom REST API",
+    "description": "REST API for managing Wiki.js pages with backend entity metadata. Supports two authentication methods: user JWT tokens (shared with backend) and service-to-service secret.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development"
+    }
+  ],
+  "security": [
+    { "BearerAuth": [] },
+    { "ServiceSecret": [] }
+  ],
+  "paths": {
+    "/api/pages/search": {
+      "get": {
+        "summary": "Search and filter pages",
+        "operationId": "searchPages",
+        "tags": ["Pages"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text search in title and description (case-insensitive)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "description": "Filter by project UUID",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "phaseId",
+            "in": "query",
+            "description": "Filter by phase UUID",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "taskId",
+            "in": "query",
+            "description": "Filter by task UUID",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max results (default 50, max 100)",
+            "schema": { "type": "integer", "default": 50, "maximum": 100 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset",
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/PageSummary" }
+                    },
+                    "count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/pages/by-path/{path}": {
+      "get": {
+        "summary": "Get a page by its path",
+        "operationId": "getPageByPath",
+        "tags": ["Pages"],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "description": "Page path (e.g. `docs/getting-started`)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "description": "Locale code (default `en`)",
+            "schema": { "type": "string", "default": "en" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/pages/{id}": {
+      "get": {
+        "summary": "Get a page by ID",
+        "operationId": "getPage",
+        "tags": ["Pages"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "summary": "Update an existing page",
+        "operationId": "updatePage",
+        "tags": ["Pages"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PageUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated page",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/pages": {
+      "post": {
+        "summary": "Create a new page",
+        "operationId": "createPage",
+        "tags": ["Pages"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PageCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created page",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": {
+            "description": "Page with this path already exists",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sso": {
+      "get": {
+        "summary": "SSO auto-login from frontend",
+        "operationId": "ssoLogin",
+        "tags": ["Authentication"],
+        "security": [],
+        "description": "Browser redirect endpoint. Validates the backend JWT, creates a Wiki.js session cookie, and redirects the user to the target page. Use this to navigate users from your frontend directly into the wiki without a separate login.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "description": "Backend JWT access token (HS256)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "redirect",
+            "in": "query",
+            "description": "Wiki path to redirect to after login (e.g. `/en/docs/my-page`). Must be a relative path. Defaults to `/`.",
+            "schema": { "type": "string", "default": "/" }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to the target wiki page with session cookie set"
+          },
+          "400": {
+            "description": "Missing token parameter"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Backend user JWT token (HS256, signed with JWT_SECRET). Payload: `{ userId: string }`"
+      },
+      "ServiceSecret": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Service-Secret",
+        "description": "Shared secret for service-to-service calls (AI agent). Must match SERVICE_SECRET env var."
+      }
+    },
+    "schemas": {
+      "Page": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "path": { "type": "string", "example": "docs/getting-started" },
+          "title": { "type": "string", "example": "Getting Started" },
+          "description": { "type": "string" },
+          "content": { "type": "string", "description": "Raw page content (markdown, html, etc.)" },
+          "contentType": { "type": "string", "example": "markdown" },
+          "editorKey": { "type": "string", "example": "markdown" },
+          "isPublished": { "type": "boolean" },
+          "localeCode": { "type": "string", "example": "en" },
+          "projectId": { "type": "string", "format": "uuid", "nullable": true },
+          "phaseId": { "type": "string", "format": "uuid", "nullable": true },
+          "taskId": { "type": "string", "format": "uuid", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "authorId": { "type": "integer" },
+          "creatorId": { "type": "integer" }
+        }
+      },
+      "PageSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "path": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "contentType": { "type": "string" },
+          "isPublished": { "type": "boolean" },
+          "localeCode": { "type": "string" },
+          "projectId": { "type": "string", "format": "uuid", "nullable": true },
+          "phaseId": { "type": "string", "format": "uuid", "nullable": true },
+          "taskId": { "type": "string", "format": "uuid", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PageCreate": {
+        "type": "object",
+        "required": ["path", "title", "content"],
+        "properties": {
+          "path": { "type": "string", "example": "projects/my-project/report", "description": "URL path (no leading slash, no dots, no spaces)" },
+          "title": { "type": "string", "example": "Project Report" },
+          "content": { "type": "string", "example": "# Report\nContent here..." },
+          "description": { "type": "string", "default": "" },
+          "editor": { "type": "string", "default": "markdown", "enum": ["markdown", "html", "api"] },
+          "locale": { "type": "string", "default": "en" },
+          "isPublished": { "type": "boolean", "default": true },
+          "isPrivate": { "type": "boolean", "default": false },
+          "tags": { "type": "array", "items": { "type": "string" }, "default": [] },
+          "projectId": { "type": "string", "format": "uuid", "nullable": true, "description": "Link to backend project" },
+          "phaseId": { "type": "string", "format": "uuid", "nullable": true, "description": "Link to backend phase" },
+          "taskId": { "type": "string", "format": "uuid", "nullable": true, "description": "Link to backend task" }
+        }
+      },
+      "PageUpdate": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "description": { "type": "string" },
+          "isPublished": { "type": "boolean" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "projectId": { "type": "string", "format": "uuid", "nullable": true },
+          "phaseId": { "type": "string", "format": "uuid", "nullable": true },
+          "taskId": { "type": "string", "format": "uuid", "nullable": true }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Authentication failed",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "examples": {
+              "missing": { "value": { "error": "Missing or malformed Authorization header" } },
+              "invalid_token": { "value": { "error": "Invalid or expired token" } },
+              "invalid_secret": { "value": { "error": "Invalid service secret" } }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Page not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "Page not found" }
+          }
+        }
+      }
+    }
+  }
+}
