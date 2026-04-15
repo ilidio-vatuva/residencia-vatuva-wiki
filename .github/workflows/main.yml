@@ -25,14 +25,18 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            # Stop PM2 process
+            pm2 delete wiki || true
+
             # Install dependencies
             cd wiki
+            rm -rf node_modules
             npm ci --legacy-peer-deps --production
 
             cd "$APP_DIR"
 
-            # Restart with PM2 (Wiki.js runs its own migrations on startup)
-            pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
+            # Start with PM2 (Wiki.js runs its own migrations on startup)
+            pm2 start ecosystem.config.js
             pm2 save
 
             # Wait for startup and verify health
