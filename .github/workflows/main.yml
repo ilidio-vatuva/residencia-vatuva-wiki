@@ -40,7 +40,7 @@ jobs:
             pm2 save
 
             # Wait for startup and verify health
-            sleep 5
-            curl -sf http://localhost:8080/healthz || echo "Warning: health check failed"
+            sleep 10
+            curl -sf http://localhost:8080/healthz || { echo "Health check failed"; exit 1; }
 
             echo "Deploy complete"
