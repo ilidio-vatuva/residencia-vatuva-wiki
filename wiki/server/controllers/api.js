@@ -276,6 +276,67 @@ router.put('/api/pages/:id', async (req, res) => {
   }
 })
 
+// ─── POST /api/pages/:id/comments ───────────────────────
+
+router.post('/api/pages/:id/comments', async (req, res) => {
+  try {
+    const pageId = parseInt(req.params.id, 10)
+    if (isNaN(pageId)) {
+      return res.status(400).json({ error: 'Invalid page ID' })
+    }
+
+    const { content, replyTo } = req.body
+    if (!content || content.trim().length < 2) {
+      return res.status(400).json({ error: 'content is required (min 2 chars)' })
+    }
+
+    const user = await getOrCreateApiUser(req.apiUser)
+
+    const cmId = await WIKI.models.comments.postNewComment({
+      pageId,
+      replyTo: replyTo || 0,
+      content: content.trim(),
+      user,
+      ip: req.ip
+    })
+
+    WIKI.logger.info(`[API] createComment — caller=${req.apiUser.type} pageId=${pageId} commentId=${cmId}`)
+    res.status(201).json({ id: cmId, pageId })
+  } catch (err) {
+    WIKI.logger.error(`[API] createComment FAILED — ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─── GET /api/pages/:id/comments ────────────────────────
+
+router.get('/api/pages/:id/comments', async (req, res) => {
+  try {
+    const pageId = parseInt(req.params.id, 10)
+    if (isNaN(pageId)) {
+      return res.status(400).json({ error: 'Invalid page ID' })
+    }
+
+    const comments = await WIKI.models.comments.query()
+      .where('pageId', pageId)
+      .orderBy('createdAt')
+
+    res.json(comments.map(c => ({
+      id: c.id,
+      content: c.content,
+      render: c.render,
+      authorId: c.authorId,
+      authorName: c.name,
+      replyTo: c.replyTo || 0,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt
+    })))
+  } catch (err) {
+    WIKI.logger.error(`[API] getComments FAILED — ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ─── Helper: get or create a Wiki.js user for API calls ─
 
 async function getOrCreateApiUser (apiUser) {

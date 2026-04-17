@@ -24,6 +24,34 @@ const mkdown = md({
 
 mkdown.use(mdEmoji)
 
+// Mention plugin: render @Name as a styled span
+mkdown.core.ruler.after('inline', 'mention', (state) => {
+  for (const token of state.tokens) {
+    if (token.type !== 'inline' || !token.children) continue
+    const newChildren = []
+    for (const child of token.children) {
+      if (child.type !== 'text' || !child.content.includes('@')) {
+        newChildren.push(child)
+        continue
+      }
+      // Split text on @mentions (supports @Word, @Two Words via @"Two Words", or @CamelCase)
+      const parts = child.content.split(/(@[\w\u00C0-\u024F]+(?:\s[\w\u00C0-\u024F]+)?)/u)
+      for (const part of parts) {
+        if (/^@[\w\u00C0-\u024F]+/u.test(part)) {
+          const openToken = new state.Token('html_inline', '', 0)
+          openToken.content = `<span class="comment-mention" style="color:#1976d2;font-weight:600">${md.utils.escapeHtml(part)}</span>`
+          newChildren.push(openToken)
+        } else if (part.length > 0) {
+          const textToken = new state.Token('text', '', 0)
+          textToken.content = part
+          newChildren.push(textToken)
+        }
+      }
+    }
+    token.children = newChildren
+  }
+})
+
 // ------------------------------------
 // Default Comment Provider
 // ------------------------------------
