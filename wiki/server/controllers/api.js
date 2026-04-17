@@ -317,7 +317,7 @@ async function getOrCreateApiUser (apiUser) {
   }
 
   // For user JWTs, find a matching Wiki.js user by the backend userId
-  // If not found, we create a placeholder
+  // If not found, we create a placeholder with the configured default group.
   let wikiUser = await WIKI.models.users.query()
     .where('providerId', apiUser.userId)
     .where('providerKey', 'local')
