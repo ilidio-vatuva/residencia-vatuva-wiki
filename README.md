@@ -35,4 +35,6 @@ cd wiki && node server
 
 Wiki.js will be available at **http://localhost:8080**.
 
+Swagger API docs: **http://localhost:8080/api/docs**
+
 On first launch, you'll be guided through the setup wizard to create your admin account.
