@@ -56,7 +56,11 @@ router.get('/auth/sso', async (req, res) => {
         password: require('crypto').randomBytes(32).toString('hex'),
         isSystem: false,
         isActive: true,
-        isVerified: true
+        isVerified: true,
+        // Match the site language (lang.code in settings) so the editor
+        // resolves pages stored under this locale. Otherwise users default
+        // to `en` and pages stored as `pt` appear as "page does not exist".
+        localeCode: WIKI.config.lang?.code || 'en'
       })
       if (defaultGroup) {
         await wikiUser.$relatedQuery('groups').relate(defaultGroup.id)
