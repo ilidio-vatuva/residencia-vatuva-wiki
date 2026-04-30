@@ -116,6 +116,16 @@ logLevel: info
 logFormat: default
 
 # ---------------------------------------------------------------------
+# Log Colorize
+# ---------------------------------------------------------------------
+# Force ANSI colour output on/off. When omitted, colours are auto-enabled
+# only when stdout is a TTY (disabled under PM2/systemd/Docker so log files
+# stay machine-parseable for the centralised log viewer).
+# Possible values: true, false (omit for auto)
+
+# logColorize: false
+
+# ---------------------------------------------------------------------
 # Offline Mode
 # ---------------------------------------------------------------------
 # If your server cannot access the internet. Set to true and manually
